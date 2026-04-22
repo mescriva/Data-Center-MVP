@@ -8,6 +8,8 @@
 
 /* ── TOKENS ──────────────────────────────────────────────── */
 :root {
+  --font-corporate: "Suisse Int'l", "Suisse Intl", "Suisse International", "Helvetica Neue", Arial, sans-serif;
+
   /* Fondo y paneles */
   --bg:           #e8ecf2;           /* Fondo general: gris muy claro */
   --panel:        #f2f4f7;           /* Panel / Sección A: gris 01 */
@@ -51,7 +53,7 @@
 html, body {
   height: 100%;
   overflow: hidden;  /* pantalla fija de exposición, sin scroll global */
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-corporate);
   background: var(--bg);
   color: var(--text-900);
   -webkit-font-smoothing: antialiased;
@@ -102,7 +104,7 @@ html, body {
   align-items: center;
   background: var(--blue-light);
   color: var(--blue);
-  font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+  font-family: var(--font-corporate);
   font-weight: 700;
   font-size: 10px;
   letter-spacing: 2px;
@@ -114,7 +116,7 @@ html, body {
 }
 
 .a-title {
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-corporate);
   font-weight: 800;
   font-size: 26px;
   line-height: 1.15;
@@ -180,7 +182,7 @@ html, body {
 .card-info { min-width: 0; }
 
 .card-title {
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-corporate);
   font-weight: 600;
   font-size: 14px;
   color: var(--text-900);
@@ -311,7 +313,7 @@ html, body {
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255,255,255,0.35);
   border-radius: 999px;
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-corporate);
   font-weight: 700;
   font-size: 11px;
   letter-spacing: 1.5px;
@@ -403,7 +405,7 @@ html, body {
 }
 
 .graph-label {
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-corporate);
   font-weight: 700;
   font-size: 13px;
   color: var(--text-900);
@@ -459,7 +461,7 @@ html, body {
   color: var(--text-500);
   padding: 10px 22px;
   border-radius: 999px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-corporate);
   font-size: 14px;
   font-weight: 400;
   cursor: pointer;
@@ -605,7 +607,7 @@ html, body {
   justify-content: center;
   gap: 12px;
   color: rgba(255,255,255,0.35);
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-corporate);
   font-size: 13px;
   letter-spacing: 1px;
   text-transform: uppercase;
