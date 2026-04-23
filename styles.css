@@ -1,261 +1,108 @@
-/* ═══════════════════════════════════════════════════════════
-   DATA CENTERS — EXPO SCREEN  |  styles.css
-   ───────────────────────────────────────────────────────────
-   Estructura: tokens → reset → layout → sección A → sección B
-               → sección C → sección D → cards → switch →
-               detalle → animaciones
-═══════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════
+   POWER ELECTRONICS — DATA CENTERS  |  styles.css
+   ──────────────────────────────────────────────────────────
+   Paleta corporativa Power Electronics:
+     Azul marino:  #1A2B5E  (principal, brand)
+     Azul medio:   #2756A8  (interactivo, links)
+     Azul claro:   #4A90D9  (acento, activo)
+     Gris claro:   #F0F2F5  (fondo base)
+     Gris panel:   #E4E8EE  (fondos secundarios)
+     Gris borde:   #CDD2DC  (divisores)
+     Gris texto:   #6B7A96  (textos secundarios)
+     Blanco:       #FFFFFF  (superficies)
+     Negro texto:  #0D1421  (texto principal)
+
+   Tipografía:
+     Display/títulos: Barlow Condensed 700
+     Cuerpo:          Barlow 400/500
+     Labels:          Barlow 600 letter-spacing
+
+   Pantalla objetivo: 1920×1080 tumbada (~122×70 cm)
+   Zona interactiva A: derecha — accesible para el comercial
+   Lectura a distancia: fuentes ≥14px, contraste WCAG AA
+══════════════════════════════════════════════════════════ */
+
 
 /* ── TOKENS ──────────────────────────────────────────────── */
 :root {
-  --font-corporate: "Suisse Int'l", "Suisse Intl", "Suisse International", "Helvetica Neue", Arial, sans-serif;
+  /* Colores corporativos */
+  --pe-navy:        #1A2B5E;
+  --pe-blue:        #2756A8;
+  --pe-blue-light:  #4A90D9;
+  --pe-blue-bg:     rgba(42, 86, 168, 0.08);
+  --pe-blue-border: rgba(42, 86, 168, 0.25);
 
-  /* Fondo y paneles */
-  --bg:           #e8ecf2;           /* Fondo general: gris muy claro */
-  --panel:        #f2f4f7;           /* Panel / Sección A: gris 01 */
-  --panel-dark:   #d4dae5;           /* Bordes y divisores */
-  --surface:      rgba(255,255,255,0.72); /* Cards sobre gris */
-  --surface-hover:rgba(255,255,255,0.95);
+  /* Grises */
+  --bg:             #ECEEF2;
+  --surface:        #FFFFFF;
+  --surface-alt:    #F4F6F9;
+  --border:         #D6DAE4;
+  --border-light:   #E8EBF0;
 
   /* Texto */
-  --text-900:     #0d1421;
-  --text-700:     #2c3e55;
-  --text-500:     #5a6a82;
-  --text-300:     #8fa0b8;
+  --text-primary:   #0D1421;
+  --text-secondary: #455068;
+  --text-muted:     #7C8AA0;
 
-  /* Azul corporativo */
-  --blue:         #1b5fff;
-  --blue-light:   rgba(27,95,255,0.12);
-  --blue-glow:    rgba(27,95,255,0.25);
-  --blue-btn:     #1b5fff;
+  /* Estados */
+  --active:         #2756A8;
+  --active-bg:      rgba(42, 86, 168, 0.10);
 
-  /* Render (zona B) fondo */
-  --render-bg:    #c8d2e0;
-
-  /* Espaciados */
-  --gap:          20px;
-  --gap-sm:       12px;
-  --radius-lg:    20px;
-  --radius-md:    14px;
-  --radius-sm:    10px;
-
-  /* Secciones */
-  --nav-h:        88px;
-
-  /* Sombras */
-  --shadow-card:  0 2px 10px rgba(13,20,33,0.08);
-  --shadow-panel: 0 4px 24px rgba(13,20,33,0.10);
+  /* Espaciado y forma */
+  --gap:            16px;
+  --gap-sm:         10px;
+  --radius:         10px;
+  --radius-sm:      6px;
+  --nav-h:          72px;
 }
 
-/* ── RESET ────────────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* ── RESET ───────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 html, body {
   height: 100%;
-  overflow: hidden;  /* pantalla fija de exposición, sin scroll global */
-  font-family: var(--font-corporate);
+  overflow: hidden;
+  font-family: 'Barlow', sans-serif;
+  font-size: 15px;
   background: var(--bg);
-  color: var(--text-900);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
 }
 
 /* ── LAYOUT GLOBAL ───────────────────────────────────────── */
+/*
+  Grid principal:
+    row 1 → main (ocupa todo el espacio disponible)
+    row 2 → barra D de modelos (altura fija)
+*/
 .app {
   height: 100vh;
   display: grid;
   grid-template-rows: 1fr var(--nav-h);
-  gap: var(--gap);
   padding: var(--gap);
+  gap: var(--gap);
   padding-bottom: 0;
 }
 
+/*
+  Main: columna izquierda (B+C) 60% | columna derecha (A) 40%
+  Proporciones pensadas para ~70cm interactivo a la derecha
+  y ~80cm visual a la izquierda.
+*/
 .main {
   display: grid;
-  grid-template-columns: 1fr 2fr;   /* 1/3 — 2/3 */
+  grid-template-columns: 3fr 2fr;
   gap: var(--gap);
   min-height: 0;
   overflow: hidden;
 }
 
-/* ── SECCIÓN A — Panel izquierdo ─────────────────────────── */
-.section-a {
-  background: var(--panel);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-panel);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 24px 20px;
-  gap: 16px;
-}
-
-/* Cabecera A */
-.a-header {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--panel-dark);
-}
-
-.a-badge {
-  display: inline-flex;
-  align-items: center;
-  background: var(--blue-light);
-  color: var(--blue);
-  font-family: var(--font-corporate);
-  font-weight: 700;
-  font-size: 10px;
-  letter-spacing: 2px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--blue-glow);
-  width: fit-content;
-  transition: background 0.25s, color 0.25s;
-}
-
-.a-title {
-  font-family: var(--font-corporate);
-  font-weight: 800;
-  font-size: 26px;
-  line-height: 1.15;
-  color: var(--text-900);
-  transition: opacity 0.3s;
-}
-
-.a-text {
-  font-size: 13px;
-  line-height: 1.65;
-  color: var(--text-500);
-  font-weight: 300;
-  transition: opacity 0.3s;
-}
-
-/* Cuerpo A (lista de equipos o detalle) */
-.a-body {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding-right: 4px;
-  /* Scroll suave */
-  scroll-behavior: smooth;
-}
-
-/* Scrollbar fina */
-.a-body::-webkit-scrollbar { width: 4px; }
-.a-body::-webkit-scrollbar-track { background: transparent; }
-.a-body::-webkit-scrollbar-thumb { background: var(--panel-dark); border-radius: 4px; }
-
-/* ── CARDS DE EQUIPOS ─────────────────────────────────────── */
-.card {
-  background: var(--surface);
-  border: 1px solid rgba(255,255,255,0.9);
-  border-radius: var(--radius-md);
-  padding: 14px 14px 14px 16px;
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
-  gap: 12px;
-  cursor: default;
-  box-shadow: var(--shadow-card);
-  transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
-  animation: slideIn 0.25s ease both;
-}
-
-.card:hover {
-  background: var(--surface-hover);
-  box-shadow: 0 4px 18px rgba(13,20,33,0.13);
-  transform: translateY(-1px);
-}
-
-/* Cuando el equipo está activo */
-.card.card--active {
-  border-color: var(--blue-glow);
-  background: rgba(27,95,255,0.06);
-  box-shadow: 0 0 0 1px var(--blue-glow), var(--shadow-card);
-}
-
-.card-info { min-width: 0; }
-
-.card-title {
-  font-family: var(--font-corporate);
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--text-900);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-bottom: 3px;
-}
-
-.card-desc {
-  font-size: 12px;
-  color: var(--text-500);
-  font-weight: 300;
-  line-height: 1.4;
-}
-
-/* Botón de detalle (flecha) */
-.btn-detail {
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--panel-dark);
-  background: transparent;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-500);
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
-  flex-shrink: 0;
-}
-.btn-detail:hover {
-  background: var(--blue);
-  color: #fff;
-  border-color: var(--blue);
-}
-.btn-detail svg { width: 16px; height: 16px; }
-
-/* ── SWITCH ───────────────────────────────────────────────── */
-.switch {
-  width: 48px;
-  height: 28px;
-  border-radius: 999px;
-  background: var(--panel-dark);
-  border: none;
-  position: relative;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background 0.2s;
-  outline: none;
-}
-.switch::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 4px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-  transform: translateY(-50%);
-  transition: left 0.2s cubic-bezier(0.4,0,0.2,1);
-}
-.switch.on {
-  background: var(--blue);
-}
-.switch.on::after {
-  left: 24px;
-}
-
-/* ── SECCIÓN DERECHA ─────────────────────────────────────── */
-.right-col {
+/* ── COLUMNA IZQUIERDA ───────────────────────────────────── */
+.left-col {
   display: grid;
   grid-template-rows: 1fr auto;
   gap: var(--gap);
@@ -264,223 +111,288 @@ html, body {
 
 /* ── SECCIÓN B — Render ──────────────────────────────────── */
 .section-b {
-  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border-radius: var(--radius);
   overflow: hidden;
   position: relative;
-  background: var(--render-bg);
-  box-shadow: var(--shadow-panel);
-  min-height: 0;
+  border: 1px solid var(--border-light);
 }
 
 .render-wrap {
   position: relative;
   width: 100%;
   height: 100%;
-  overflow: hidden;
 }
 
+/* Logo en la esquina superior derecha del render */
+.render-logo {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
+  background: rgba(255,255,255,0.92);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+}
+.render-logo img {
+  height: 28px;
+  width: auto;
+  display: block;
+}
+
+/* Imagen del render: cubre todo el contenedor */
 .render-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
   display: block;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.35s ease;
 }
-
-/* Estado de transición al cambiar render */
-.render-img.fading {
+.render-img.is-loading {
   opacity: 0;
 }
 
-/* Logo empresa (overlay arriba-derecha) */
-.render-logo {
+/* Etiqueta del modelo activo (esquina inferior izquierda) */
+.render-badge {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  z-index: 2;
-  opacity: 0.85;
-  pointer-events: none;
-}
-
-/* Etiqueta del modelo sobre el render */
-.render-tag {
-  position: absolute;
-  bottom: 16px;
-  left: 16px;
-  background: rgba(255,255,255,0.18);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.35);
-  border-radius: 999px;
-  font-family: var(--font-corporate);
-  font-weight: 700;
-  font-size: 11px;
+  bottom: 14px;
+  left: 14px;
+  background: var(--pe-navy);
+  color: #fff;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
   letter-spacing: 1.5px;
-  color: #fff;
-  padding: 6px 14px;
-  pointer-events: none;
   text-transform: uppercase;
-}
-
-/* Capa de puntos de foco */
-.focus-layer {
-  position: absolute;
-  inset: 0;
+  padding: 5px 12px;
+  border-radius: 4px;
   pointer-events: none;
-  z-index: 3;
-}
-
-.focus-dot {
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.45);
-  border: 2px solid rgba(255,255,255,0.7);
-  transform: translate(-50%, -50%);
-  transition: background 0.25s, box-shadow 0.25s, transform 0.25s;
-}
-
-.focus-dot::before {
-  content: '';
-  position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.25);
-  animation: none;
-}
-
-.focus-dot.active {
-  background: var(--blue);
-  border-color: #fff;
-  box-shadow: 0 0 0 4px var(--blue-glow), 0 0 16px rgba(27,95,255,0.5);
-  transform: translate(-50%, -50%) scale(1.25);
-}
-
-.focus-dot.active::before {
-  border-color: rgba(27,95,255,0.35);
-  animation: pulse-ring 1.8s ease-out infinite;
-}
-
-/* Etiqueta del punto de foco */
-.focus-label {
-  position: absolute;
-  left: 50%;
-  top: calc(100% + 8px);
-  transform: translateX(-50%);
-  background: var(--text-900);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 500;
-  padding: 3px 8px;
-  border-radius: 6px;
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-.focus-dot.active .focus-label {
-  opacity: 1;
 }
 
 /* ── SECCIÓN C — Gráfica ─────────────────────────────────── */
 .section-c {
-  background: var(--panel);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-panel);
-  padding: 16px 20px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-light);
+  padding: 14px 18px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   min-height: 0;
-  overflow: hidden;
 }
 
 .graph-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: baseline;
   flex-shrink: 0;
 }
 
-.graph-label {
-  font-family: var(--font-corporate);
-  font-weight: 700;
-  font-size: 13px;
-  color: var(--text-900);
+.graph-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
   letter-spacing: 0.5px;
+  color: var(--text-primary);
+  text-transform: uppercase;
 }
 
-.graph-unit {
+.graph-subtitle {
   font-size: 11px;
-  color: var(--text-300);
-}
-
-.graph-video {
-  width: 100%;
-  flex: 1;
-  min-height: 0;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
-  display: none; /* se muestra solo cuando hay video cargado */
+  color: var(--text-muted);
+  font-weight: 400;
 }
 
 .graph-canvas {
   width: 100%;
   flex: 1;
   min-height: 0;
-  border-radius: var(--radius-sm);
   display: block;
+  border-radius: 4px;
 }
 
-/* ── SECCIÓN D — Navbar inferior ─────────────────────────── */
-.section-d {
-  height: var(--nav-h);
+/* ── SECCIÓN A — Panel interactivo (derecha) ─────────────── */
+.section-a {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Cabecera A: modelo + título + descripción breve */
+.a-header {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border-light);
+  flex-shrink: 0;
+}
+
+.a-model-tag {
+  font-family: 'Barlow', sans-serif;
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--pe-blue);
+  margin-bottom: 6px;
+}
+
+.a-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 1.1;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.a-desc {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+/* Cuerpo A: lista de equipos o detalle */
+.a-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  scroll-behavior: smooth;
+}
+
+/* Scrollbar fina y discreta */
+.a-body::-webkit-scrollbar { width: 3px; }
+.a-body::-webkit-scrollbar-track { background: transparent; }
+.a-body::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+/* ── CARDS DE EQUIPOS / OPCIONES ─────────────────────────── */
+/*
+  Cada card = una opción (puede ser un equipo o combinación).
+  Grid: [info] [switch] [botón detalle]
+  Botones grandes (~44px) para facilitar el toque en expo.
+*/
+.card {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 1fr 52px 44px;
+  align-items: center;
+  gap: 10px;
+  cursor: default;
+  transition: border-color 0.2s, background 0.2s;
+  animation: fadeUp 0.2s ease both;
+}
+
+.card:hover {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+/* Card activa: borde azul sutil */
+.card.card--active {
+  border-color: var(--pe-blue);
+  background: var(--active-bg);
+}
+
+.card-info { min-width: 0; }
+
+.card-title {
+  font-family: 'Barlow', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+/* ── SWITCH ──────────────────────────────────────────────── */
+/*
+  Toggle visual: OFF = gris | ON = azul corporativo
+  Tamaño grande para uso táctil en mesa de exposición.
+*/
+.switch {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  background: var(--border);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s;
+  outline: none;
+}
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+  transition: left 0.18s ease;
+}
+.switch.on {
+  background: var(--pe-blue);
+}
+.switch.on::after {
+  left: 21px;
+}
+
+/* ── BOTÓN DETALLE ───────────────────────────────────────── */
+/*
+  Flecha → que abre la vista de detalle del equipo.
+  44×44px: tamaño mínimo recomendado para targets táctiles.
+*/
+.btn-detail {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--panel);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  box-shadow: 0 -2px 16px rgba(13,20,33,0.07);
-  padding: 0 24px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
 }
-
-.model-nav {
-  display: flex;
-  gap: 8px;
-  background: var(--bg);
-  border-radius: 999px;
-  padding: 6px;
-  border: 1px solid var(--panel-dark);
-}
-
-.model-btn {
-  border: none;
-  background: transparent;
-  color: var(--text-500);
-  padding: 10px 22px;
-  border-radius: 999px;
-  font-family: var(--font-corporate);
-  font-size: 14px;
-  font-weight: 400;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s, font-weight 0.1s;
-  white-space: nowrap;
-}
-
-.model-btn:hover:not(.selected) {
-  color: var(--text-700);
-  background: rgba(255,255,255,0.5);
-}
-
-.model-btn.selected {
-  background: var(--text-900);
+.btn-detail:hover {
+  background: var(--pe-navy);
   color: #fff;
-  font-weight: 600;
+  border-color: var(--pe-navy);
+}
+.btn-detail svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
-/* ── VISTA DETALLE DE EQUIPO (en sección A) ──────────────── */
+/* ── VISTA DETALLE ───────────────────────────────────────── */
 .detail-wrap {
   display: flex;
   flex-direction: column;
@@ -488,93 +400,137 @@ html, body {
   height: 100%;
 }
 
+/* Botón volver */
 .btn-back {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid var(--panel-dark);
-  background: var(--surface);
+  border: 1px solid var(--border);
+  background: transparent;
   border-radius: var(--radius-sm);
-  padding: 7px 12px;
+  padding: 8px 14px;
+  font-family: 'Barlow', sans-serif;
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-700);
+  color: var(--text-secondary);
   cursor: pointer;
   width: fit-content;
-  transition: background 0.2s, color 0.2s;
+  transition: background 0.18s, color 0.18s;
 }
 .btn-back:hover {
-  background: var(--text-900);
+  background: var(--pe-navy);
   color: #fff;
-  border-color: var(--text-900);
+  border-color: var(--pe-navy);
 }
 .btn-back svg { width: 14px; height: 14px; }
 
-.detail-scheme {
+/* Imagen esquema del equipo */
+.detail-img {
   width: 100%;
-  aspect-ratio: 16/9;
-  border-radius: var(--radius-md);
+  aspect-ratio: 16 / 9;
   object-fit: contain;
-  background: var(--panel-dark);
-  border: 1px solid rgba(0,0,0,0.06);
+  background: var(--surface-alt);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
 }
 
-/* Placeholder de imagen cuando no hay asset */
-.detail-scheme-placeholder {
+/* Placeholder cuando no hay imagen */
+.detail-img-placeholder {
   width: 100%;
-  aspect-ratio: 16/9;
-  border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--panel-dark) 0%, var(--bg) 100%);
-  border: 1px dashed var(--panel-dark);
+  aspect-ratio: 16 / 9;
+  background: var(--surface-alt);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  gap: 8px;
-  color: var(--text-300);
+  gap: 6px;
+  color: var(--text-muted);
   font-size: 12px;
 }
-
-.detail-scheme-placeholder svg {
-  width: 32px;
-  height: 32px;
-  opacity: 0.4;
+.detail-img-placeholder svg {
+  width: 28px;
+  height: 28px;
+  opacity: 0.35;
 }
 
-.detail-long {
+/* Texto largo del detalle */
+.detail-text {
   font-size: 13px;
   line-height: 1.7;
-  color: var(--text-700);
-  font-weight: 300;
+  color: var(--text-secondary);
+  font-weight: 400;
 }
 
+/* Fila inferior: toggle de activación */
 .detail-toggle-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--surface);
-  border-radius: var(--radius-sm);
   padding: 12px 14px;
-  border: 1px solid rgba(0,0,0,0.06);
+  background: var(--surface-alt);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
   margin-top: auto;
   flex-shrink: 0;
 }
-
 .detail-toggle-label {
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-700);
+  color: var(--text-secondary);
+}
+
+/* ── SECCIÓN D — Barra inferior ──────────────────────────── */
+.section-d {
+  height: var(--nav-h);
+  background: var(--surface);
+  border-radius: var(--radius) var(--radius) 0 0;
+  border: 1px solid var(--border-light);
+  border-bottom: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+}
+
+/* Grupo de botones de modelo */
+.model-nav {
+  display: flex;
+  gap: 4px;
+  background: var(--bg);
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.model-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 9px 20px;
+  border-radius: 6px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.18s, color 0.18s;
+}
+.model-btn:hover:not(.selected) {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.7);
+}
+.model-btn.selected {
+  background: var(--pe-navy);
+  color: #fff;
+  font-weight: 600;
 }
 
 /* ── ANIMACIONES ─────────────────────────────────────────── */
-@keyframes slideIn {
-  from { opacity: 0; transform: translateY(8px); }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes pulse-ring {
-  0%   { transform: scale(1); opacity: 0.6; }
-  100% { transform: scale(2.5); opacity: 0; }
 }
 
 @keyframes fadeIn {
@@ -583,32 +539,5 @@ html, body {
 }
 
 .anim-fade {
-  animation: fadeIn 0.3s ease both;
-}
-
-/* ── UTILIDADES ──────────────────────────────────────────── */
-.sr-only {
-  position: absolute;
-  width: 1px; height: 1px;
-  padding: 0; margin: -1px;
-  overflow: hidden;
-  clip: rect(0,0,0,0);
-  white-space: nowrap;
-  border: 0;
-}
-
-/* Placeholder render */
-.render-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  color: rgba(255,255,255,0.35);
-  font-family: var(--font-corporate);
-  font-size: 13px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
+  animation: fadeIn 0.25s ease both;
 }

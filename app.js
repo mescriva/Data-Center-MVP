@@ -1,295 +1,262 @@
-// ═══════════════════════════════════════════════════════════
-//  DATA CENTERS — app.js
-//  Lógica de interacción del MVP.
-//  ─────────────────────────────────────────────────────────
-//  Flujo principal:
-//    1. Usuario elige modelo en Sección D   → setModel()
-//    2. Usuario activa switch en card       → toggleEquip()
-//    3. Usuario pulsa flecha de detalle     → openDetail()
-//    4. Usuario pulsa ← volver             → closeDetail()
+// ══════════════════════════════════════════════════════════
+//  POWER ELECTRONICS — DATA CENTERS  |  app.js
+//  ──────────────────────────────────────────────────────────
+//  Flujo de interacción:
 //
-//  Sin frameworks. Sin bundler. Vanilla JS con módulos
-//  simulados (variables globales desde data.js cargado antes).
+//  1. SECCIÓN D → el usuario elige un modelo
+//     → setModel(id): resetea opción activa, redibuja todo
 //
-//  IMPORTANTE: data.js debe cargarse ANTES que este archivo
-//  (ver orden de <script> en index.html)
-// ═══════════════════════════════════════════════════════════
+//  2. SECCIÓN A → el usuario activa el switch de una opción
+//     → selectOpcion(id): carga render + gráfica de esa opción
+//     Solo UNA opción puede estar activa a la vez.
+//     Activar una opción desactiva la anterior.
+//
+//  3. SECCIÓN A → el usuario pulsa la flecha "→" de una opción
+//     → openDetail(id): muestra descripción larga + imagen de esquema
+//     La opción se activa automáticamente al entrar en detalle.
+//
+//  4. SECCIÓN A → "← Volver"
+//     → closeDetail(): vuelve al listado de opciones
+//
+//  Decisiones de diseño:
+//  · Al cambiar de modelo se resetea la opción activa.
+//    Motivo: cada modelo es una propuesta diferente; mezclar
+//    opciones entre modelos no tiene sentido comercialmente.
+//  · Solo una opción activa por modelo (radio, no checkbox).
+//    Motivo: cada render y gráfica está asociado a una opción
+//    predefinida. No se generan combinaciones dinámicas.
+//  · Re-render completo en cada acción: con 4-6 opciones por
+//    modelo es más claro y fácil de depurar que actualizaciones
+//    parciales del DOM.
+// ══════════════════════════════════════════════════════════
 
 
-// ── ESTADO GLOBAL ─────────────────────────────────────────
-// Todo el estado de la UI vive aquí. Sencillo y depurable.
+// ── ESTADO ────────────────────────────────────────────────
 const state = {
-  modeloId:      MODELS[0].id,  // modelo seleccionado por defecto
-  activeEquip:   {},            // { [equipId]: boolean }  switch ON/OFF
-  detailEquipId: null           // si ≠ null → sección A muestra detalle
+  modeloId:    MODELS[0].id,  // modelo activo al arrancar
+  opcionId:    null,          // opción activa (null = ninguna)
+  detailId:    null           // si ≠ null → sección A muestra detalle
 };
 
 
-// ── REFERENCIAS DOM (caché para no buscar en cada render) ──
-const $ = id => document.getElementById(id);
-
+// ── REFERENCIAS DOM ───────────────────────────────────────
+// Guardamos las referencias una vez al inicio para no buscarlas
+// en cada render.
 const dom = {
-  aTitle:     $("aTitle"),
-  aText:      $("aText"),
-  aBadge:     $("aBadge"),
-  aBody:      $("aBody"),
-  renderImg:  $("renderImg"),
-  focusLayer: $("focusLayer"),
-  renderTag:  $("renderTag"),
-  graphVideo: $("graphVideo"),
-  graphCanvas:$("graphCanvas"),
-  graphLabel: $("graphLabel"),
-  graphUnit:  $("graphUnit"),
-  modelNav:   $("modelNav")
+  aModelTag:    document.getElementById("aModelTag"),
+  aTitle:       document.getElementById("aTitle"),
+  aDesc:        document.getElementById("aDesc"),
+  aBody:        document.getElementById("aBody"),
+  renderImg:    document.getElementById("renderImg"),
+  renderBadge:  document.getElementById("renderBadge"),
+  graphCanvas:  document.getElementById("graphCanvas"),
+  graphTitle:   document.getElementById("graphTitle"),
+  graphSubtitle:document.getElementById("graphSubtitle"),
+  modelNav:     document.getElementById("modelNav")
 };
 
 
-// ── HELPERS ────────────────────────────────────────────────
+// ── HELPERS ───────────────────────────────────────────────
 
-/** Devuelve el objeto modelo activo */
+// Devuelve el objeto modelo activo
 function getModel() {
   return MODELS.find(m => m.id === state.modeloId);
 }
 
-/** Devuelve true si el equipo está activo (switch ON) */
-function isOn(equipId) {
-  return Boolean(state.activeEquip[equipId]);
-}
-
-/** Inicializa el estado de switches para un modelo (solo la primera vez) */
-function initEquipState(model) {
-  model.equipos.forEach(eq => {
-    if (state.activeEquip[eq.id] === undefined) {
-      state.activeEquip[eq.id] = false;
-    }
-  });
+// Devuelve la opción activa, o null si no hay ninguna
+function getOpcionActiva() {
+  const model = getModel();
+  if (!state.opcionId) return null;
+  return model.opciones.find(o => o.id === state.opcionId) || null;
 }
 
 
-// ── RENDER: SECCIÓN D (navbar modelos) ────────────────────
-function renderSectionD() {
+// ── SECCIÓN D — Navbar de modelos ────────────────────────
+function renderNavModelos() {
   dom.modelNav.innerHTML = MODELS.map(m => {
     const sel = m.id === state.modeloId ? "selected" : "";
-    return `<button class="model-btn ${sel}" data-action="setModel" data-model="${m.id}">
+    return `<button class="model-btn ${sel}"
+                    data-action="setModel"
+                    data-id="${m.id}">
               ${m.shortName}
             </button>`;
   }).join("");
 }
 
 
-// ── RENDER: SECCIÓN B (render + puntos de foco) ───────────
-function renderSectionB(model) {
-  const currentSrc = dom.renderImg.src;
-  const newSrc     = model.render;
+// ── SECCIÓN B — Render ────────────────────────────────────
+// Carga la imagen correcta según el estado actual.
+// Si hay opción activa → render de la opción.
+// Si no → render base del modelo.
+function renderSectionB() {
+  const model  = getModel();
+  const opcion = getOpcionActiva();
+  const src    = opcion ? opcion.render : model.render;
 
-  // Si el render cambia, hacemos fade suave
-  if (currentSrc && !currentSrc.endsWith(newSrc)) {
-    dom.renderImg.classList.add("fading");
-    setTimeout(() => {
-      dom.renderImg.src = newSrc;
-      dom.renderImg.classList.remove("fading");
-    }, 250);
-  } else {
-    dom.renderImg.src = newSrc;
-  }
+  dom.renderBadge.textContent = model.shortName;
 
-  // Etiqueta del modelo sobre el render
-  dom.renderTag.textContent = model.shortName.toUpperCase();
-
-  // Puntos de foco (overlay sobre el render)
-  // Los puntos grises son inactivos, azules son activos
-  dom.focusLayer.innerHTML = model.equipos.map(eq => {
-    const activeClass = isOn(eq.id) ? "active" : "";
-    const x = eq.focus?.x ?? 50;
-    const y = eq.focus?.y ?? 50;
-    return `<span class="focus-dot ${activeClass}"
-                  style="left:${x}%; top:${y}%"
-                  title="${eq.title}">
-            </span>`;
-  }).join("");
+  // Fade suave al cambiar imagen
+  dom.renderImg.classList.add("is-loading");
+  setTimeout(() => {
+    dom.renderImg.src = src;
+    dom.renderImg.onload = () => dom.renderImg.classList.remove("is-loading");
+    dom.renderImg.onerror = () => dom.renderImg.classList.remove("is-loading");
+  }, 150);
 }
 
 
-// ── RENDER: SECCIÓN C (gráfica / video) ───────────────────
-function renderSectionC(model) {
-  // Actualizar etiquetas
-  dom.graphLabel.textContent = model.graphLabel || "Rendimiento energético";
-  dom.graphUnit.textContent  = model.graphUnit  || `kW · ${model.shortName}`;
+// ── SECCIÓN C — Gráfica ───────────────────────────────────
+// Dibuja la gráfica usando Canvas API.
+// Usa los datos del modelo o de la opción activa.
+function renderSectionC() {
+  const model  = getModel();
+  const opcion = getOpcionActiva();
 
-  // Si hay asset de vídeo real
-  if (model.graph) {
-    // Soporta ambos casos: <video> y <img> en el contenedor de gráfica.
-    const isVideoEl = dom.graphVideo.tagName === "VIDEO";
+  const data     = opcion ? opcion.graphData   : model.graphData;
+  const title    = opcion
+    ? `${model.shortName} — ${opcion.title.split("—")[0].trim()}`
+    : model.graphLabel;
+  const subtitle = model.graphSubtitle;
 
-    if (isVideoEl) {
-      const source = dom.graphVideo.querySelector("source");
-      if (source) source.src = model.graph;
-      else dom.graphVideo.src = model.graph;
+  dom.graphTitle.textContent    = title;
+  dom.graphSubtitle.textContent = subtitle;
 
-      dom.graphVideo.load();
-      dom.graphVideo.play().catch(() => {
-        // En algunos kioscos el autoplay puede estar bloqueado.
-      });
-
-      dom.graphVideo.oncanplay = () => {
-        dom.graphVideo.style.display = "block";
-        dom.graphCanvas.style.display = "none";
-      };
-      dom.graphVideo.onerror = () => {
-        dom.graphVideo.style.display = "none";
-        dom.graphCanvas.style.display = "block";
-        drawPlaceholderChart(dom.graphCanvas, model);
-      };
-    } else {
-      dom.graphVideo.src = model.graph;
-      dom.graphVideo.style.display = "block";
-      dom.graphCanvas.style.display = "none";
-
-      dom.graphVideo.onerror = () => {
-        dom.graphVideo.style.display = "none";
-        dom.graphCanvas.style.display = "block";
-        drawPlaceholderChart(dom.graphCanvas, model);
-      };
-    }
-  } else {
-    // Sin vídeo → dibujar gráfica demo con Canvas
-    dom.graphVideo.style.display = "none";
-    dom.graphCanvas.style.display = "block";
-    drawPlaceholderChart(dom.graphCanvas, model);
-  }
+  // Dibujar en el siguiente frame para tener dimensiones correctas
+  requestAnimationFrame(() => drawChart(dom.graphCanvas, data));
 }
 
+// Dibuja una gráfica de área con Canvas
+function drawChart(canvas, values) {
+  const rect = canvas.getBoundingClientRect();
+  const dpr  = window.devicePixelRatio || 1;
 
-// ── GRÁFICA PLACEHOLDER (Canvas API) ─────────────────────
-// Dibuja una curva de área suave como placeholder hasta
-// que el cliente proporcione los .mp4 reales.
-function drawPlaceholderChart(canvas, model) {
-  // Esperar al layout para tener dimensiones reales
-  requestAnimationFrame(() => {
-    const rect = canvas.getBoundingClientRect();
-    canvas.width  = rect.width  * window.devicePixelRatio;
-    canvas.height = rect.height * window.devicePixelRatio;
-    const ctx = canvas.getContext("2d");
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  canvas.width  = rect.width  * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
 
-    const W = rect.width;
-    const H = rect.height;
+  const W   = rect.width;
+  const H   = rect.height;
+  const pad = { top: 18, right: 12, bottom: 24, left: 44 };
+  const cW  = W - pad.left - pad.right;
+  const cH  = H - pad.top  - pad.bottom;
 
-    // Datos de muestra — 12 puntos (meses)
-    const baseValues = {
-      m1: [32, 35, 45, 52, 48, 60, 72, 68, 55, 63, 70, 65],
-      m2: [55, 62, 70, 82, 78, 90, 96, 92, 85, 88, 94, 90],
-      m3: [20, 28, 42, 58, 65, 78, 85, 80, 62, 50, 35, 22],
-      m4: [15, 18, 22, 25, 28, 30, 32, 31, 28, 24, 20, 16],
-      m5: [80, 84, 88, 90, 92, 95, 98, 96, 93, 91, 88, 85],
-      m6: [40, 44, 50, 56, 60, 65, 68, 66, 62, 58, 52, 46]
+  const maxV = Math.max(...values) * 1.1;
+  const minV = Math.min(...values) * 0.9;
+  const range = maxV - minV;
+
+  // Función para convertir valor a coordenadas
+  function px(i, v) {
+    return {
+      x: pad.left + (i / (values.length - 1)) * cW,
+      y: pad.top  + cH * (1 - (v - minV) / range)
     };
-    const vals = baseValues[model.id] || baseValues.m1;
-    const maxVal = Math.max(...vals);
-    const pad = { top: 20, right: 20, bottom: 28, left: 40 };
-    const chartW = W - pad.left - pad.right;
-    const chartH = H - pad.top  - pad.bottom;
+  }
 
-    ctx.clearRect(0, 0, W, H);
+  const pts = values.map((v, i) => px(i, v));
 
-    // Grid líneas horizontales
-    ctx.strokeStyle = "rgba(13,20,33,0.08)";
-    ctx.lineWidth = 1;
-    [0.25, 0.5, 0.75, 1].forEach(t => {
-      const y = pad.top + chartH * (1 - t);
-      ctx.beginPath();
-      ctx.moveTo(pad.left, y);
-      ctx.lineTo(pad.left + chartW, y);
-      ctx.stroke();
-    });
+  ctx.clearRect(0, 0, W, H);
 
-    // Puntos de la curva
-    const points = vals.map((v, i) => ({
-      x: pad.left + (i / (vals.length - 1)) * chartW,
-      y: pad.top  + chartH * (1 - v / maxVal)
-    }));
-
-    // Área bajo la curva (relleno con gradiente)
-    const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + chartH);
-    grad.addColorStop(0,   "rgba(27,95,255,0.25)");
-    grad.addColorStop(1,   "rgba(27,95,255,0.02)");
-
+  // Grid horizontal (3 líneas)
+  ctx.strokeStyle = "#D6DAE4";
+  ctx.lineWidth   = 1;
+  [0.33, 0.66, 1].forEach(t => {
+    const y = pad.top + cH * (1 - t);
     ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-      const cpx = (points[i-1].x + points[i].x) / 2;
-      ctx.bezierCurveTo(cpx, points[i-1].y, cpx, points[i].y, points[i].x, points[i].y);
-    }
-    ctx.lineTo(points[points.length-1].x, pad.top + chartH);
-    ctx.lineTo(points[0].x, pad.top + chartH);
-    ctx.closePath();
-    ctx.fillStyle = grad;
-    ctx.fill();
-
-    // Línea de la curva
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-      const cpx = (points[i-1].x + points[i].x) / 2;
-      ctx.bezierCurveTo(cpx, points[i-1].y, cpx, points[i].y, points[i].x, points[i].y);
-    }
-    ctx.strokeStyle = "rgba(27,95,255,0.8)";
-    ctx.lineWidth = 2;
-    ctx.setLineDash([]);
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(pad.left + cW, y);
     ctx.stroke();
 
-    // Eje X: etiquetas de meses
-    const meses = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-    ctx.fillStyle = "rgba(13,20,33,0.35)";
-    ctx.font = "10px 'DM Sans', sans-serif";
-    ctx.textAlign = "center";
-    points.forEach((p, i) => {
-      ctx.fillText(meses[i], p.x, H - 6);
-    });
+    // Etiqueta eje Y
+    const val = Math.round(minV + range * t);
+    ctx.fillStyle   = "#7C8AA0";
+    ctx.font        = `10px Barlow, sans-serif`;
+    ctx.textAlign   = "right";
+    ctx.fillText(val, pad.left - 6, y + 4);
+  });
 
-    // Eje Y: valor máximo
-    ctx.textAlign = "right";
-    ctx.fillText(maxVal + " kW", pad.left - 6, pad.top + 4);
+  // Área rellena bajo la curva
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) {
+    const cpx = (pts[i-1].x + pts[i].x) / 2;
+    ctx.bezierCurveTo(cpx, pts[i-1].y, cpx, pts[i].y, pts[i].x, pts[i].y);
+  }
+  ctx.lineTo(pts[pts.length-1].x, pad.top + cH);
+  ctx.lineTo(pts[0].x, pad.top + cH);
+  ctx.closePath();
+  // Color de relleno: azul corporativo muy suave
+  ctx.fillStyle = "rgba(42, 86, 168, 0.08)";
+  ctx.fill();
+
+  // Línea de la curva
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) {
+    const cpx = (pts[i-1].x + pts[i].x) / 2;
+    ctx.bezierCurveTo(cpx, pts[i-1].y, cpx, pts[i].y, pts[i].x, pts[i].y);
+  }
+  ctx.strokeStyle = "#2756A8";
+  ctx.lineWidth   = 2;
+  ctx.stroke();
+
+  // Puntos en la curva
+  pts.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = "#2756A8";
+    ctx.fill();
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  });
+
+  // Eje X: meses abreviados
+  const meses = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  ctx.fillStyle  = "#7C8AA0";
+  ctx.font       = "10px Barlow, sans-serif";
+  ctx.textAlign  = "center";
+  pts.forEach((p, i) => {
+    ctx.fillText(meses[i], p.x, pad.top + cH + 16);
   });
 }
 
 
-// ── RENDER: SECCIÓN A — LISTADO DE EQUIPOS ────────────────
-function renderSectionAList(model) {
-  // Cabecera
-  dom.aBadge.textContent  = model.shortName.toUpperCase();
-  dom.aTitle.textContent  = model.name;
-  dom.aText.textContent   = model.description;
+// ── SECCIÓN A — Listado de opciones ──────────────────────
+function renderSectionAList() {
+  const model = getModel();
 
-  // Cards de equipos
-  dom.aBody.innerHTML = model.equipos.map((eq, i) => {
-    const onClass = isOn(eq.id) ? "on" : "";
-    const cardActive = isOn(eq.id) ? "card--active" : "";
+  dom.aModelTag.textContent = "Data Centers";
+  dom.aTitle.textContent    = model.name;
+  dom.aDesc.textContent     = model.description;
+
+  dom.aBody.innerHTML = model.opciones.map((op, i) => {
+    const isActive   = op.id === state.opcionId;
+    const cardClass  = isActive ? "card card--active" : "card";
+    const switchClass = isActive ? "switch on" : "switch";
+    const delay      = i * 0.05;
 
     return `
-      <article class="card ${cardActive} anim-fade"
-               data-equip="${eq.id}"
-               style="animation-delay: ${i * 0.06}s">
+      <article class="${cardClass} anim-fade"
+               data-equip="${op.id}"
+               style="animation-delay:${delay}s">
 
-        <!-- Información del equipo -->
         <div class="card-info">
-          <div class="card-title">${eq.title}</div>
-          <div class="card-desc">${eq.short}</div>
+          <div class="card-title">${op.title}</div>
+          <div class="card-desc">${op.short}</div>
         </div>
 
-        <!-- Switch ON/OFF -->
-        <button class="switch ${onClass}"
+        <button class="${switchClass}"
                 data-action="toggle"
-                aria-label="${isOn(eq.id) ? "Desactivar" : "Activar"} ${eq.title}"
-                aria-pressed="${isOn(eq.id)}">
+                aria-label="${isActive ? "Desactivar" : "Activar"} ${op.title}"
+                aria-pressed="${isActive}">
         </button>
 
-        <!-- Botón de detalle -->
         <button class="btn-detail"
                 data-action="detail"
-                aria-label="Ver detalle de ${eq.title}">
-          <!-- Icono flecha derecha -->
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"
+                aria-label="Ver detalle de ${op.title}">
+          <svg viewBox="0 0 16 16" fill="none"
+               stroke="currentColor" stroke-width="2"
                stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 8h10M9 4l4 4-4 4"/>
           </svg>
@@ -301,49 +268,48 @@ function renderSectionAList(model) {
 }
 
 
-// ── RENDER: SECCIÓN A — DETALLE DE EQUIPO ────────────────
-function renderSectionADetail(model, equipId) {
-  const eq = model.equipos.find(e => e.id === equipId);
-  if (!eq) return;
+// ── SECCIÓN A — Vista detalle ─────────────────────────────
+function renderSectionADetail() {
+  const model  = getModel();
+  const opcion = model.opciones.find(o => o.id === state.detailId);
+  if (!opcion) return;
 
-  // Actualizar cabecera con datos del equipo
-  dom.aBadge.textContent = model.shortName.toUpperCase();
-  dom.aTitle.textContent = eq.title;
-  dom.aText.textContent  = "";  // se mostrará en el body
+  dom.aModelTag.textContent = model.shortName;
+  dom.aTitle.textContent    = opcion.title.split("—").slice(1).join("—").trim() || opcion.title;
+  dom.aDesc.textContent     = "";
 
-  // Contenido del detalle
+  const imgHtml = opcion.schemeImg
+    ? `<img class="detail-img"
+            src="${opcion.schemeImg}"
+            alt="Esquema de ${opcion.title}"
+            onerror="this.outerHTML='${placeholderHtml(opcion.title)}'" />`
+    : placeholderHtml(opcion.title);
+
+  const isActive    = opcion.id === state.opcionId;
+  const switchClass = isActive ? "switch on" : "switch";
+
   dom.aBody.innerHTML = `
     <div class="detail-wrap anim-fade">
 
-      <!-- Botón volver -->
       <button class="btn-back" data-action="back">
-        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"
-             stroke-linecap="round" stroke-linejoin="round">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M11 7H3M7 3L3 7l4 4"/>
         </svg>
-        Volver a equipos
+        Volver
       </button>
 
-      <!-- Imagen esquema del equipo -->
-      ${eq.schemeImg
-        ? `<img class="detail-scheme"
-                src="${eq.schemeImg}"
-                alt="Esquema de ${eq.title}"
-                onerror="this.outerHTML=renderSchemePlaceholder('${eq.title}')" />`
-        : renderSchemePlaceholder(eq.title)
-      }
+      ${imgHtml}
 
-      <!-- Descripción larga -->
-      <p class="detail-long">${eq.long}</p>
+      <p class="detail-text">${opcion.long}</p>
 
-      <!-- Toggle de activación (al fondo del panel) -->
       <div class="detail-toggle-row">
         <span class="detail-toggle-label">Activar en el data center</span>
-        <button class="switch ${isOn(eq.id) ? "on" : ""}"
+        <button class="${switchClass}"
                 data-action="toggle"
-                data-equip="${eq.id}"
-                aria-label="${isOn(eq.id) ? "Desactivar" : "Activar"} ${eq.title}"
-                aria-pressed="${isOn(eq.id)}">
+                data-equip="${opcion.id}"
+                aria-label="Activar ${opcion.title}"
+                aria-pressed="${isActive}">
         </button>
       </div>
 
@@ -351,116 +317,118 @@ function renderSectionADetail(model, equipId) {
   `;
 }
 
-
-// Helper: HTML del placeholder de imagen de esquema
-function renderSchemePlaceholder(title) {
-  return `
-    <div class="detail-scheme-placeholder">
-      <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5">
-        <rect x="2" y="6" width="28" height="20" rx="3"/>
-        <circle cx="10" cy="16" r="3"/>
-        <path d="M17 13h8M17 16h6M17 19h8"/>
-      </svg>
-      <span>Esquema: ${title}</span>
-    </div>
-  `;
+// HTML del placeholder de imagen (escapado para uso en onerror)
+function placeholderHtml(title) {
+  return `<div class="detail-img-placeholder">
+    <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5">
+      <rect x="2" y="5" width="24" height="18" rx="3"/>
+      <circle cx="9" cy="14" r="2.5"/>
+      <path d="M15 11h6M15 14h5M15 17h6"/>
+    </svg>
+    <span>${title}</span>
+  </div>`;
 }
 
 
 // ── RENDER GLOBAL ─────────────────────────────────────────
-// Un único punto de entrada que actualiza toda la UI.
-// Para MVP es suficiente — re-render completo es muy rápido
-// con el DOM que tenemos.
+// Punto único de actualización de la UI.
 function render() {
-  const model = getModel();
-  initEquipState(model);
+  renderNavModelos();
+  renderSectionB();
+  renderSectionC();
 
-  renderSectionD();
-  renderSectionB(model);
-  renderSectionC(model);
-
-  if (state.detailEquipId) {
-    renderSectionADetail(model, state.detailEquipId);
+  if (state.detailId) {
+    renderSectionADetail();
   } else {
-    renderSectionAList(model);
+    renderSectionAList();
   }
 }
 
 
 // ── ACCIONES ──────────────────────────────────────────────
 
-/** Cambia el modelo activo y resetea la vista de detalle */
-function setModel(modelId) {
-  state.modeloId    = modelId;
-  state.detailEquipId = null;
+// Cambia el modelo activo.
+// Resetea la opción y el detalle: cada modelo es independiente.
+function setModel(id) {
+  state.modeloId = id;
+  state.opcionId = null;   // resetear opción al cambiar modelo
+  state.detailId = null;
   render();
 }
 
-/** Alterna el estado ON/OFF de un equipo */
-function toggleEquip(equipId) {
-  state.activeEquip[equipId] = !state.activeEquip[equipId];
+// Activa o desactiva una opción (radio: solo una activa).
+// Si la opción ya está activa, la desactiva (vuelve al estado base).
+function toggleOpcion(id) {
+  if (state.opcionId === id) {
+    // Desactivar
+    state.opcionId = null;
+  } else {
+    // Activar (desactiva la anterior automáticamente)
+    state.opcionId = id;
+  }
   render();
 }
 
-/**
- * Abre la vista detalle de un equipo.
- * Activa automáticamente el switch para que el render
- * muestre el punto de foco azul.
- */
-function openDetail(equipId) {
-  state.activeEquip[equipId] = true;  // activar al entrar en detalle
-  state.detailEquipId        = equipId;
+// Abre el detalle de una opción.
+// La activa automáticamente para que el render se actualice.
+function openDetail(id) {
+  state.opcionId = id;   // activar al entrar en detalle
+  state.detailId = id;
   render();
 }
 
-/** Cierra el detalle y vuelve al listado */
+// Cierra el detalle y vuelve al listado.
 function closeDetail() {
-  state.detailEquipId = null;
+  state.detailId = null;
   render();
 }
 
 
 // ── DELEGACIÓN DE EVENTOS ─────────────────────────────────
-// Un único listener en el documento para toda la interacción.
-// Busca el botón más cercano y su data-action.
-document.addEventListener("click", (ev) => {
-  const btn = ev.target.closest("button[data-action]");
+// Un único listener para toda la interacción.
+document.addEventListener("click", (e) => {
+
+  // Buscar el botón con data-action más cercano al click
+  const btn = e.target.closest("button[data-action]");
   if (!btn) return;
 
-  const action  = btn.dataset.action;
+  const action = btn.dataset.action;
 
-  // ① Cambiar modelo (Sección D)
+  // ① Cambiar modelo (sección D)
   if (action === "setModel") {
-    const modelId = btn.dataset.model;
-    if (modelId) setModel(modelId);
+    setModel(btn.dataset.id);
     return;
   }
 
-  // ② Activar/desactivar equipo (switch)
+  // ② Activar/desactivar opción (switch)
   if (action === "toggle") {
-    // El equipId puede estar en el propio botón o en la card padre
-    const card    = btn.closest("[data-equip]");
-    const equipId = btn.dataset.equip || card?.dataset.equip;
-    if (equipId) toggleEquip(equipId);
+    // El id puede estar en el botón o en la card padre
+    const card = btn.closest("[data-equip]");
+    const id   = btn.dataset.equip || card?.dataset.equip;
+    if (id) toggleOpcion(id);
     return;
   }
 
   // ③ Abrir detalle (flecha →)
   if (action === "detail") {
-    const card    = btn.closest("[data-equip]");
-    const equipId = card?.dataset.equip;
-    if (equipId) openDetail(equipId);
+    const card = btn.closest("[data-equip]");
+    const id   = card?.dataset.equip;
+    if (id) openDetail(id);
     return;
   }
 
-  // ④ Volver al listado (← volver)
+  // ④ Volver al listado (← Volver)
   if (action === "back") {
     closeDetail();
     return;
   }
 });
 
+// Redibujar la gráfica si la ventana cambia de tamaño
+window.addEventListener("resize", () => {
+  renderSectionC();
+});
 
-// ── INICIALIZACIÓN ────────────────────────────────────────
-// Llamada inicial que pinta toda la UI con el modelo 1.
+
+// ── ARRANQUE ──────────────────────────────────────────────
 render();
